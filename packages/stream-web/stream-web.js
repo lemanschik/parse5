@@ -9,6 +9,8 @@ const ParserStream = import('parse5-parser-stream');
 const http = require('http');
 const { finished } = require('node:stream');
 
+// TODO i need to handle that maybe directly in the tree adapter popUntil stuff. if that would be a stream 
+// i would need no logic to compare the childNodeChanges but maybe child node changes are cool?
 
 export const ReadableHTMLDocumentStream = (readableOrPromise) => new ReadableStream({async start(reader){
   for await (const reading of await readableOrPromise) {
@@ -28,8 +30,14 @@ ReadableHTMLDocumentStream(fetch('https://inikulin.github.io/parse5/').then(
   (r)=>r.body)).pipeTrough(new TransformStream({transform(mutation,layoutRender){
   mutation?.childNodes[1]?.childNodes[0]?.tagName && 
     console.log(mutation.childNodes[1].childNodes[0].tagName); //> 'head'
+    const default0 = (x) => x || 0;
+    const childNodeRendered = default0(this.childNodesLenght) === mutation.childNodes.length
+    
+    this.childNodesLenght = mutation.childNodes[this.currentChildNode].length;
+    this.currentChildNode = default0(this.currentChildNode);
+    childNodeRendered && layoutRender.enqeueue(mutation.childNodes[this.currentChildNode]);
+    
   
-  layoutRender.enqeueue(mutation);
 }}).pipeTo(new WriteableStream({write(domTree){
   const position = (this.currentPosition = this.currentPosition || o);
   this.openElement.domTree.childNodes[position++]
